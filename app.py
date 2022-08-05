@@ -76,7 +76,7 @@ class BERTClassifier(nn.Module):
 
 # 모델 로드
 model = BERTClassifier(bertmodel,  dr_rate=0.5).to(device)
-model.load_state_dict(torch.load('../side-server/model/8emotions_state_dict_ver3.pt', map_location=device))
+model.load_state_dict(torch.load('./model/8emotions_state_dict_ver3.pt', map_location=device))
 
 # 예측
 def predict(model, predict_sentence):
