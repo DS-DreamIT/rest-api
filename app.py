@@ -9,40 +9,6 @@ from kobert.pytorch_kobert import get_pytorch_kobert_model
 import gluonnlp as nlp
 import numpy as np
 
-from konlpy.tag import Okt
-from keybert import KeyBERT
-import pandas as pd
-
-
-# 키워드 추출
-def keyword_extract(sentences):
-    # 전처리(명사화, 불용어 제거)
-    okt = Okt()
-    stopwords = ['그리고', '것', '그게', '다음', '다행', '최대한', '데리', '오늘', '오후', '일찍', '다시', '무엇', '막상',
-                 '다음주', '별일', '일도', '일이', '크게', '방금', '갑자기', '계속', '저번', '심지어', '위해', '꿈속', '끼리',
-                 '억지로', '그것', '어제', '일단', '타고', '마침', '사려', '못', '일', '무슨', '찌', '여', '아예', '그냥',
-                 '거기', '거의', '바로', '존나', '인지', '역시', '조금', '자꾸', '내야', '하니', '약간', '본격', '달라',
-                 '정말', '얼마']
-
-    tokenized_doc = okt.pos(sentences, stem=True)
-    array_text = [word[0] for word in tokenized_doc if word[1] == 'Noun' and word[0] not in stopwords]
-
-    bow = []
-    kw_extractor = KeyBERT('distilbert-base-nli-mean-tokens')
-
-    for j in range(len(array_text)):
-        keywords = kw_extractor.extract_keywords(array_text[j])
-        bow.append(keywords)
-
-    new_bow = []
-    for i in range(0, len(bow)):
-        for j in range(len(bow[i])):
-            new_bow.append(bow[i][j])
-
-    keyword = pd.DataFrame(new_bow, columns=['keyword', 'weight'])
-    result = keyword.groupby('keyword').agg('sum').sort_values('weight', ascending=False).head(20)
-    return list(result.index)[:5]  # 키워드 수 조절 가능
-
 
 # 감정 분류 모델 로드 준비
 device = torch.device("cpu")
@@ -110,7 +76,7 @@ class BERTClassifier(nn.Module):
 
 # 모델 로드
 model = BERTClassifier(bertmodel,  dr_rate=0.5).to(device)
-model.load_state_dict(torch.load('./model/8emotions_state_dict_ver3.pt', map_location=device))
+model.load_state_dict(torch.load('../side-server/model/8emotions_state_dict_ver3.pt', map_location=device))
 
 # 예측
 def predict(model, predict_sentence):
@@ -176,18 +142,6 @@ class emotionAPI(Resource):
             return jsonify({"result": result})
         except:
             return jsonify({"result": []})
-
-
-@api.route('/keyword')
-class keywordAPI(Resource):
-    def post(self):
-        try:
-            content = request.json.get('content')
-            keywords = keyword_extract(content)
-            return jsonify({"keywords": keywords})
-        except:
-            return jsonify({"keywords": []})
-
 
 if __name__ == '__main__':
     app.run(debug=False)
